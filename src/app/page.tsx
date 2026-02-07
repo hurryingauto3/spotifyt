@@ -72,9 +72,9 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold mb-2 text-white">Smart Matching</h3>
+            <h3 className="text-xl font-bold mb-2 text-white">AI-Powered Matching</h3>
             <p className="text-purple-200/80">
-              Fuzzy matching engine finds the right tracks across platforms with high accuracy.
+              Google Gemini AI finds the right tracks across platforms with exceptional accuracy.
             </p>
           </div>
 
@@ -90,6 +90,21 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-16 pt-8 border-t border-white/10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-purple-200/60 text-sm">
+            <p>© {new Date().getFullYear()} SpotifYT. All rights reserved.</p>
+            <div className="flex gap-6">
+              <Link href="/privacy" className="hover:text-purple-200 transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="hover:text-purple-200 transition-colors">
+                Terms of Service
+              </Link>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
