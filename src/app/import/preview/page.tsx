@@ -35,28 +35,50 @@ export default function ImportPreview() {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
-    loadAndMatch();
+    loadParsedSongs();
   }, []);
 
-  async function loadAndMatch() {
+  async function loadParsedSongs() {
     try {
+      console.log('[Preview] Loading parsed songs');
       // Get parsed songs from sessionStorage
       const stored = sessionStorage.getItem('importedSongs');
       if (!stored) {
+        console.log('[Preview] No songs in sessionStorage, redirecting');
         router.push('/import');
         return;
       }
 
       const parsedSongs: ParsedSong[] = JSON.parse(stored);
-      setLoading(false);
-      setMatching(true);
-      setProgress({ current: 0, total: parsedSongs.length });
+      console.log('[Preview] Loaded', parsedSongs.length, 'parsed songs');
 
-      // Match each song on Spotify
+      // Show parsed songs immediately without searching
+      const initialResults: MatchResult[] = parsedSongs.map(song => ({
+        parsed: song,
+        match: null,
+        confidence: 0,
+        status: 'not_found' as const,
+      }));
+
+      setResults(initialResults);
+      setLoading(false);
+      setProgress({ current: 0, total: parsedSongs.length });
+    } catch (error) {
+      console.error('[Preview] Error loading songs:', error);
+      setLoading(false);
+    }
+  }
+
+  async function searchSpotify() {
+    try {
+      console.log('[Preview] Starting Spotify search');
+      setMatching(true);
+      const parsedSongs: ParsedSong[] = JSON.parse(sessionStorage.getItem('importedSongs') || '[]');
       const matchResults: MatchResult[] = [];
 
       for (let i = 0; i < parsedSongs.length; i++) {
         const song = parsedSongs[i];
+        console.log(`[Preview] Searching ${i+1}/${parsedSongs.length}:`, song);
 
         // Search Spotify
         const searchRes = await fetch('/api/search', {
@@ -130,11 +152,14 @@ export default function ImportPreview() {
     return r.status === filter;
   });
 
+  const hasSearched = results.some(r => r.match !== null);
+
   const stats = {
     matched: results.filter((r) => r.status === 'matched').length,
     lowConfidence: results.filter((r) => r.status === 'low_confidence').length,
     notFound: results.filter((r) => r.status === 'not_found').length,
     totalToAdd: results.filter((r) => r.match && (r.status === 'matched' || r.status === 'low_confidence')).length,
+    totalParsed: results.length,
   };
 
   if (loading || matching) {
@@ -175,10 +200,42 @@ export default function ImportPreview() {
             </svg>
             Back to Import
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-3">Review Matches</h1>
-          <p className="text-purple-200 text-lg">Found {stats.totalToAdd} songs on Spotify</p>
+          <h1 className="text-4xl font-bold text-white mb-3">
+            {hasSearched ? 'Review Matches' : 'Parsed Songs'}
+          </h1>
+          <p className="text-purple-200 text-lg">
+            {hasSearched
+              ? `Found ${stats.totalToAdd} songs on Spotify`
+              : `${stats.totalParsed} songs extracted from text`
+            }
+          </p>
         </div>
 
+        {/* Search Button (if not searched yet) */}
+        {!hasSearched && (
+          <div className="mb-6 bg-blue-500/10 backdrop-blur-lg border border-blue-500/30 rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-300 mb-1">
+                  Ready to search on Spotify?
+                </h3>
+                <p className="text-blue-200/70 text-sm">
+                  Connect Spotify to find these songs and add them to your library
+                </p>
+              </div>
+              <button
+                onClick={searchSpotify}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all font-bold shadow-lg whitespace-nowrap"
+              >
+                🔍 Search on Spotify
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sync Mode Selector (only show after searching) */}
+        {hasSearched && (
+          <>
         {/* Sync Mode Selector */}
         <div className="mb-6 bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6 shadow-2xl">
           <label className="block text-white font-medium mb-3">Where to add tracks?</label>
@@ -338,6 +395,25 @@ export default function ImportPreview() {
             }
           </button>
         </div>
+          </>
+        )}
+
+        {/* Show parsed songs list even if not searched */}
+        {!hasSearched && results.length > 0 && (
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl">
+            <div className="p-5 border-b border-white/10">
+              <h3 className="text-xl font-semibold text-white">Parsed Songs ({results.length})</h3>
+            </div>
+            <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
+              {results.map((result, idx) => (
+                <div key={idx} className="p-5">
+                  <div className="font-semibold text-white">{result.parsed.title}</div>
+                  <div className="text-sm text-purple-200/70">{result.parsed.artist}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { UnifiedTrack, MatchResult } from '@/lib/matching/types';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
 
 interface GeminiMatchRequest {
   sourceTrack: UnifiedTrack;
@@ -18,6 +18,11 @@ export async function matchWithGemini(
   sourceTrack: UnifiedTrack,
   candidates: UnifiedTrack[]
 ): Promise<{ match: UnifiedTrack | null; confidence: number; reasoning: string }> {
+  // Validate API key
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable not set');
+  }
+
   if (candidates.length === 0) {
     return { match: null, confidence: 0, reasoning: 'No candidates provided' };
   }

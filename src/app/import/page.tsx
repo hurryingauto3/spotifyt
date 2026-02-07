@@ -26,23 +26,41 @@ export default function ImportPage() {
       setParsing(true);
       setError(null);
 
+      console.log('[Import] Starting parse with text length:', textInput.length);
+
       const response = await fetch('/api/import/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: textInput }),
       });
 
+      console.log('[Import] Parse response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
+      console.log('[Import] Parse result:', data);
 
       if (data.error) {
         setError(data.error);
         return;
       }
 
+      if (!data.songs || data.songs.length === 0) {
+        setError('No songs found in text. Try a different format or check the example.');
+        return;
+      }
+
       // Store parsed songs and navigate to preview
+      console.log('[Import] Storing', data.songs.length, 'songs in sessionStorage');
       sessionStorage.setItem('importedSongs', JSON.stringify(data.songs));
+
+      console.log('[Import] Navigating to preview');
       router.push('/import/preview');
     } catch (err: any) {
+      console.error('[Import] Parse error:', err);
       setError(err.message || 'Failed to parse text');
     } finally {
       setParsing(false);

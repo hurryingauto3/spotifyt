@@ -2,12 +2,25 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { searchTrack as searchSpotify } from '@/lib/spotify/client';
 import { searchYTMusicSong as searchYouTube } from '@/lib/youtube/ytmusic-client';
-import { batchMatchWithGemini } from '@/lib/gemini/client';
+import { batchMatchWithGemini, matchWithGemini } from '@/lib/gemini/client';
 import { UnifiedTrack } from '@/lib/matching/types';
 
 export async function POST(request: Request) {
   try {
-    const { sourceTracks, direction, targetPlaylistId } = await request.json();
+    const body = await request.json();
+
+    // Handle single track matching (for client-side hook)
+    if (body.sourceTrack && body.candidates) {
+      const { sourceTrack, candidates } = body;
+      const result = await matchWithGemini(sourceTrack, candidates);
+      return NextResponse.json({
+        match: result.match,
+        confidence: result.confidence,
+      });
+    }
+
+    // Handle batch matching (existing functionality)
+    const { sourceTracks, direction, targetPlaylistId } = body;
 
     if (!sourceTracks || !direction) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

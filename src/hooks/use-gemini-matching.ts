@@ -146,63 +146,30 @@ async function callGeminiAPI(
   sourceTrack: UnifiedTrack,
   candidates: UnifiedTrack[]
 ): Promise<{ match: UnifiedTrack | null; confidence: number }> {
-  const GEMINI_API_KEY = 'AIzaSyDRsICRoVYSCUtX8JxkVx5J2omrDYQhn2o';
-  const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
-
-  const prompt = `You are a music matching expert. Find the best match for the source track among candidates.
-
-Source: "${sourceTrack.title}" by "${sourceTrack.artist}" (${Math.round(sourceTrack.durationMs / 1000)}s)
-
-Candidates:
-${candidates.map((c, i) => `${i}. "${c.title}" by "${c.artist}" (${Math.round(c.durationMs / 1000)}s)`).join('\n')}
-
-Consider: title variations (Official, Remaster, Live), artist variations (VEVO, feat.), duration (±10s OK).
-
-Respond ONLY with JSON:
-{
-  "bestMatchIndex": <number 0-${candidates.length - 1} or -1 if no match>,
-  "confidence": <0.0-1.0>
-}`;
-
+  // Call server-side API to keep API key secure
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetch('/api/sync/match-gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 200,
-        }
-      })
+        sourceTrack,
+        candidates,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      console.error('[Gemini Hook] Server error:', response.status);
+      return { match: null, confidence: 0 };
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      throw new Error('No JSON in Gemini response');
-    }
-
-    const result = JSON.parse(jsonMatch[0]);
-
-    if (result.bestMatchIndex === -1 || result.bestMatchIndex < 0 || result.bestMatchIndex >= candidates.length) {
-      return { match: null, confidence: result.confidence || 0 };
-    }
-
     return {
-      match: candidates[result.bestMatchIndex],
-      confidence: result.confidence || 0
+      match: data.match || null,
+      confidence: data.confidence || 0,
     };
-  } catch (error) {
-    console.error('[Gemini API] Error:', error);
-    // Fallback to first candidate with low confidence
-    return { match: candidates[0] || null, confidence: 0.3 };
+  } catch (error: any) {
+    console.error('[Gemini Hook] Error:', error);
+    return { match: null, confidence: 0 };
   }
 }
 
