@@ -5,7 +5,6 @@ import { UnifiedTrack } from '@/lib/matching/types';
 import { searchTrack } from '@/lib/spotify/client';
 import { searchYouTube } from '@/lib/youtube/client';
 import { getExistingTrackIds } from '@/lib/sync/dedup';
-import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,17 +33,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Spotify not connected' }, { status: 401 });
     }
 
-    // Check match cache first
-    const cachedMatches = await prisma.matchCache.findMany({
-      where: {
-        sourceTrackId: { in: sourceTracks.map((t) => t.id) },
-        direction,
-        expiresAt: { gte: new Date() },
-      },
-    });
-
-    const cacheMap = new Map(cachedMatches.map((m) => [m.sourceTrackId, m]));
-
     // Determine search function based on direction
     const searchFn = async (query: string) => {
       if (direction === 'spotify_to_youtube') {
@@ -63,35 +51,6 @@ export async function POST(request: NextRequest) {
 
     // Deduplicate within batch
     const dedupedResults = deduplicateResults(results);
-
-    // Cache new matches
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-    for (const result of dedupedResults) {
-      if (result.target && result.status === 'matched' && !cacheMap.has(result.source.id)) {
-        await prisma.matchCache.upsert({
-          where: {
-            sourceTrackId_direction: {
-              sourceTrackId: result.source.id,
-              direction,
-            },
-          },
-          update: {
-            targetTrackId: result.target.id,
-            confidence: result.confidence,
-            expiresAt,
-          },
-          create: {
-            sourceTrackId: result.source.id,
-            targetTrackId: result.target.id,
-            confidence: result.confidence,
-            direction,
-            expiresAt,
-          },
-        });
-      }
-    }
 
     // Calculate stats
     const stats = {

@@ -22,6 +22,7 @@ function PreviewMatchesContent() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [playlistName, setPlaylistName] = useState('');
+  const [syncMode, setSyncMode] = useState<'playlist' | 'liked'>('playlist');
   const { matchTracks, isMatching, progress, cancelMatching } = useGeminiMatching();
 
   useEffect(() => {
@@ -78,7 +79,10 @@ function PreviewMatchesContent() {
     sessionStorage.setItem('syncResults', JSON.stringify({
       results: tracksToSync,
       direction,
-      playlistName: playlistName.trim() || `Synced Playlist - ${new Date().toLocaleDateString()}`
+      syncMode,
+      playlistName: syncMode === 'playlist'
+        ? (playlistName.trim() || `Synced Playlist - ${new Date().toLocaleDateString()}`)
+        : undefined
     }));
     router.push(`/sync/result?direction=${direction}`);
   }
@@ -138,17 +142,48 @@ function PreviewMatchesContent() {
           <p className="text-purple-200 text-lg">Step 3 of 4: Review matched tracks</p>
         </div>
 
-        {/* Playlist Name Input */}
+        {/* Sync Mode Selector */}
         <div className="mb-6 bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6 shadow-2xl">
-          <label className="block text-white font-medium mb-2">Playlist Name</label>
-          <input
-            type="text"
-            value={playlistName}
-            onChange={(e) => setPlaylistName(e.target.value)}
-            placeholder="Enter playlist name..."
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          />
+          <label className="block text-white font-medium mb-3">Where to add tracks?</label>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => setSyncMode('playlist')}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                syncMode === 'playlist'
+                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg'
+                  : 'bg-white/5 border-white/10 hover:border-white/30'
+              }`}
+            >
+              <div className="text-white font-semibold mb-1">New Playlist</div>
+              <div className="text-purple-200/70 text-sm">Create a new playlist</div>
+            </button>
+            <button
+              onClick={() => setSyncMode('liked')}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                syncMode === 'liked'
+                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500 shadow-lg'
+                  : 'bg-white/5 border-white/10 hover:border-white/30'
+              }`}
+            >
+              <div className="text-white font-semibold mb-1">Liked Songs</div>
+              <div className="text-purple-200/70 text-sm">Add to your liked songs</div>
+            </button>
+          </div>
         </div>
+
+        {/* Playlist Name Input (only for playlist mode) */}
+        {syncMode === 'playlist' && (
+          <div className="mb-6 bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6 shadow-2xl">
+            <label className="block text-white font-medium mb-2">Playlist Name</label>
+            <input
+              type="text"
+              value={playlistName}
+              onChange={(e) => setPlaylistName(e.target.value)}
+              placeholder="Enter playlist name..."
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-lg p-6 rounded-2xl border border-green-500/30 shadow-lg hover:scale-105 transition-transform">
@@ -236,7 +271,10 @@ function PreviewMatchesContent() {
             disabled={stats.totalToSync === 0}
             className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 font-bold shadow-lg hover:shadow-purple-500/50 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed disabled:shadow-none"
           >
-            Sync {stats.totalToSync} Tracks →
+            {syncMode === 'liked'
+              ? `Add ${stats.totalToSync} to Liked Songs →`
+              : `Sync ${stats.totalToSync} Tracks →`
+            }
           </button>
         </div>
       </div>

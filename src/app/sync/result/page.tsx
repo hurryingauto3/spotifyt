@@ -27,7 +27,7 @@ function SyncResultContent() {
         return;
       }
 
-      const { results, direction: syncDirection } = JSON.parse(storedData);
+      const { results, direction: syncDirection, syncMode, playlistName } = JSON.parse(storedData);
 
       // Execute sync
       const res = await fetch('/api/sync/execute', {
@@ -36,8 +36,9 @@ function SyncResultContent() {
         body: JSON.stringify({
           matchResults: results,
           direction: syncDirection,
-          createNew: true,
-          targetPlaylistName: `Synced from ${syncDirection === 'spotify_to_youtube' ? 'Spotify' : 'YouTube Music'} - ${new Date().toLocaleDateString()}`,
+          syncMode: syncMode || 'playlist',
+          createNew: syncMode === 'playlist',
+          targetPlaylistName: playlistName || `Synced from ${syncDirection === 'spotify_to_youtube' ? 'Spotify' : 'YouTube Music'} - ${new Date().toLocaleDateString()}`,
         }),
       });
 

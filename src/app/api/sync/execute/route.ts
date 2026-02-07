@@ -3,7 +3,6 @@ import { getSession } from '@/lib/session';
 import { MatchResult } from '@/lib/matching/types';
 import { addToLiked, addToPlaylist, createPlaylist as createSpotifyPlaylist } from '@/lib/spotify/client';
 import { addVideosToPlaylist, createPlaylist as createYouTubePlaylist } from '@/lib/youtube/client';
-import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,12 +15,14 @@ export async function POST(request: NextRequest) {
       targetPlaylistId,
       targetPlaylistName,
       createNew,
+      syncMode,
     }: {
       matchResults: MatchResult[];
       direction: 'spotify_to_youtube' | 'youtube_to_spotify';
       targetPlaylistId?: string;
       targetPlaylistName?: string;
       createNew: boolean;
+      syncMode?: 'playlist' | 'liked';
     } = body;
 
     if (!matchResults || !direction) {
@@ -77,10 +78,16 @@ export async function POST(request: NextRequest) {
       const trackUris = confirmedMatches.map((r) => r.target!.id);
 
       try {
-        if (playlistId === 'liked' || !playlistId) {
+        if (syncMode === 'liked') {
+          // Add to Liked Songs
           await addToLiked(session, trackUris);
-        } else {
+          playlistUrl = 'https://open.spotify.com/collection/tracks';
+        } else if (playlistId) {
+          // Add to specific playlist
           await addToPlaylist(session, playlistId, trackUris);
+          playlistUrl = playlistUrl || `https://open.spotify.com/playlist/${playlistId}`;
+        } else {
+          throw new Error('No playlist ID provided');
         }
         added = trackUris.length;
       } catch (error) {
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
         failed = trackUris.length;
       }
     } else {
-      // Spotify to YouTube
+      // Spotify to YouTube (always requires a playlist)
       const videoIds = confirmedMatches.map((r) => r.target!.videoId || r.target!.id);
 
       if (!playlistId) {
@@ -104,45 +111,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save sync history
-    const syncHistory = await prisma.syncHistory.create({
-      data: {
-        direction,
-        sourcePlaylistId: matchResults[0]?.source.id || 'unknown',
-        sourcePlaylistName: 'Source Playlist',
-        targetPlaylistId: playlistId || null,
-        targetPlaylistName: targetPlaylistName || null,
-        totalTracks: matchResults.length,
-        matched: matchResults.filter((r) => r.status === 'matched').length,
-        notFound: matchResults.filter((r) => r.status === 'not_found').length,
-        alreadyExisted: matchResults.filter((r) => r.status === 'already_exists').length,
-        lowConfidence: matchResults.filter((r) => r.status === 'low_confidence').length,
-      },
-    });
-
-    // Save match records
-    for (const result of confirmedMatches) {
-      await prisma.matchRecord.create({
-        data: {
-          syncHistoryId: syncHistory.id,
-          sourceTrackId: result.source.id,
-          sourceTitle: result.source.title,
-          sourceArtist: result.source.artist,
-          targetTrackId: result.target?.id,
-          targetTitle: result.target?.title,
-          targetArtist: result.target?.artist,
-          confidence: result.confidence,
-          status: result.status,
-        },
-      });
-    }
-
     return NextResponse.json({
       success: true,
       added,
       failed,
-      playlistUrl: playlistUrl || (playlistId ? `https://open.spotify.com/playlist/${playlistId}` : ''),
-      syncHistoryId: syncHistory.id,
+      playlistUrl,
+      totalTracks: confirmedMatches.length,
     });
   } catch (error: any) {
     console.error('Execute sync error:', error);
