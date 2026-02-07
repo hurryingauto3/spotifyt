@@ -77,12 +77,14 @@ export default function ImportPreview() {
         let status: 'matched' | 'low_confidence' | 'not_found' = 'not_found';
 
         if (candidates.length > 0) {
-          match = candidates[0];
+          const candidate = candidates[0];
+          match = candidate;
+
           // Simple confidence: check title and artist similarity
-          const titleMatch = match.title.toLowerCase().includes(song.title.toLowerCase()) ||
-                           song.title.toLowerCase().includes(match.title.toLowerCase());
-          const artistMatch = match.artist.toLowerCase().includes(song.artist.toLowerCase()) ||
-                            song.artist.toLowerCase().includes(match.artist.toLowerCase());
+          const titleMatch = candidate.title.toLowerCase().includes(song.title.toLowerCase()) ||
+                           song.title.toLowerCase().includes(candidate.title.toLowerCase());
+          const artistMatch = candidate.artist.toLowerCase().includes(song.artist.toLowerCase()) ||
+                            song.artist.toLowerCase().includes(candidate.artist.toLowerCase());
 
           if (titleMatch && artistMatch) {
             confidence = 0.90;
