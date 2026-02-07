@@ -41,11 +41,11 @@ export async function getUserPlaylists(session: SessionData) {
   await ensureValidToken(session);
   const youtube = getYouTubeClient(session);
 
-  const playlists: any[] = [];
+  const playlists: youtube_v3.Schema$Playlist[] = [];
   let pageToken: string | undefined;
 
   // Try fetching playlists with mine=true
-  do {
+  while (true) {
     const response = await youtube.playlists.list({
       part: ['snippet', 'contentDetails'],
       mine: true,
@@ -64,32 +64,51 @@ export async function getUserPlaylists(session: SessionData) {
     }
 
     pageToken = response.data.nextPageToken || undefined;
-  } while (pageToken);
+    if (!pageToken) break;
+  }
 
   // If no playlists found with mine=true, try using channelId
   if (playlists.length === 0 && session.youtube?.channelId) {
-    console.log('[YouTube] No playlists with mine=true, trying channelId:', session.youtube.channelId);
-    pageToken = undefined;
+    const channelId = session.youtube.channelId;
+    console.log('[YouTube] No playlists with mine=true, trying channelId:', channelId);
 
-    do {
-      const result = await youtube.playlists.list({
+    // Fetch first page
+    const firstResponse = await youtube.playlists.list({
+      part: ['snippet', 'contentDetails'],
+      channelId,
+      maxResults: 50,
+    });
+
+    console.log('[YouTube] Playlists API response (channelId):', {
+      itemCount: firstResponse.data.items?.length || 0,
+      totalResults: firstResponse.data.pageInfo?.totalResults,
+    });
+
+    if (firstResponse.data.items) {
+      playlists.push(...firstResponse.data.items);
+    }
+
+    // Fetch remaining pages if any
+    let nextToken = firstResponse.data.nextPageToken || undefined;
+    while (nextToken) {
+      const nextResponse = await youtube.playlists.list({
         part: ['snippet', 'contentDetails'],
-        channelId: session.youtube.channelId,
+        channelId,
         maxResults: 50,
-        pageToken,
+        pageToken: nextToken,
       });
 
       console.log('[YouTube] Playlists API response (channelId):', {
-        itemCount: result.data.items?.length || 0,
-        totalResults: result.data.pageInfo?.totalResults,
+        itemCount: nextResponse.data.items?.length || 0,
+        totalResults: nextResponse.data.pageInfo?.totalResults,
       });
 
-      if (result.data.items) {
-        playlists.push(...result.data.items);
+      if (nextResponse.data.items) {
+        playlists.push(...nextResponse.data.items);
       }
 
-      pageToken = result.data.nextPageToken || undefined;
-    } while (pageToken);
+      nextToken = nextResponse.data.nextPageToken || undefined;
+    }
   }
 
   console.log('[YouTube] Total playlists found:', playlists.length);
@@ -106,10 +125,10 @@ export async function getPlaylistItems(session: SessionData, playlistId: string)
   await ensureValidToken(session);
   const youtube = getYouTubeClient(session);
 
-  const items: any[] = [];
+  const items: youtube_v3.Schema$PlaylistItem[] = [];
   let pageToken: string | undefined;
 
-  do {
+  while (true) {
     const response = await youtube.playlistItems.list({
       part: ['snippet', 'contentDetails'],
       playlistId,
@@ -122,7 +141,8 @@ export async function getPlaylistItems(session: SessionData, playlistId: string)
     }
 
     pageToken = response.data.nextPageToken || undefined;
-  } while (pageToken);
+    if (!pageToken) break;
+  }
 
   return items;
 }
@@ -131,7 +151,7 @@ export async function getVideoDetails(session: SessionData, videoIds: string[]) 
   await ensureValidToken(session);
   const youtube = getYouTubeClient(session);
 
-  const videos: any[] = [];
+  const videos: youtube_v3.Schema$Video[] = [];
 
   // Batch in groups of 50
   for (let i = 0; i < videoIds.length; i += 50) {
@@ -165,12 +185,12 @@ export async function getPlaylistTracks(session: SessionData, playlistId: string
     artists: [video.snippet?.channelTitle || 'Unknown'],
     album: undefined,
     durationMs: parseDuration(video.contentDetails?.duration),
-    videoId: video.id,
+    videoId: video.id || undefined,
     raw: video,
   }));
 }
 
-function parseDuration(isoDuration?: string): number {
+function parseDuration(isoDuration?: string | null): number {
   if (!isoDuration) return 0;
 
   const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -269,7 +289,7 @@ export async function searchYouTube(session: SessionData, query: string) {
     artists: [video.snippet?.channelTitle || 'Unknown'],
     album: undefined,
     durationMs: parseDuration(video.contentDetails?.duration),
-    videoId: video.id,
+    videoId: video.id || undefined,
     raw: video,
   }));
 }
