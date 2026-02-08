@@ -128,7 +128,19 @@ export default function Dashboard() {
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-3">Dashboard</h1>
           <p className="text-purple-200 text-lg">Connect your music platforms to start syncing</p>
-          <p className="text-purple-300/70 mt-2">{connectedCount} of 4 platforms connected</p>
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <p className="text-purple-300/70">{connectedCount} of 4 platforms connected</p>
+            <span className="text-purple-300/50">•</span>
+            <Link
+              href="/pricing"
+              className="text-purple-300 hover:text-white transition-colors font-medium flex items-center gap-1"
+            >
+              <span>Upgrade to Pro</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
         </div>
 
         {/* Platform Cards Grid */}

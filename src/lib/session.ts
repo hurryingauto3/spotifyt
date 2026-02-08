@@ -40,6 +40,15 @@ export interface SessionData {
   youtubeState?: string;
   tidalState?: string;
   deezerState?: string;
+  // Subscription data
+  subscription?: {
+    tier: 'free' | 'pro';
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    currentPeriodEnd?: number;
+    monthlySyncs?: number; // Track usage
+    lastResetDate?: number; // Last time we reset the counter
+  };
 }
 
 export const sessionOptions: SessionOptions = {
