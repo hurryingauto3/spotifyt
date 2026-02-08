@@ -17,11 +17,29 @@ export interface YouTubeSession {
   displayName: string;
 }
 
+export interface TidalSession {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number; // Unix timestamp
+  displayName?: string;
+}
+
+export interface DeezerSession {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number; // Unix timestamp
+  displayName?: string;
+}
+
 export interface SessionData {
   spotify?: SpotifySession;
   youtube?: YouTubeSession;
+  tidal?: TidalSession;
+  deezer?: DeezerSession;
   spotifyState?: string;
   youtubeState?: string;
+  tidalState?: string;
+  deezerState?: string;
 }
 
 export const sessionOptions: SessionOptions = {

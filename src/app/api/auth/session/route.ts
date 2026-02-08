@@ -18,6 +18,18 @@ export async function GET() {
             displayName: session.youtube.displayName,
           }
         : { connected: false },
+      tidal: session.tidal
+        ? {
+            connected: true,
+            displayName: session.tidal.displayName,
+          }
+        : { connected: false },
+      deezer: session.deezer
+        ? {
+            connected: true,
+            displayName: session.deezer.displayName,
+          }
+        : { connected: false },
     });
   } catch (error) {
     console.error('Session status error:', error);

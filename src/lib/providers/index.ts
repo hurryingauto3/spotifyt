@@ -12,12 +12,16 @@ export * from './base';
 export { SpotifyProvider } from './spotify';
 export { YouTubeProvider } from './youtube';
 export { AppleMusicProvider, generateDeveloperToken } from './apple-music';
+export { TidalProvider } from './tidal';
+export { DeezerProvider } from './deezer';
 
 // Import for registration
 import { ProviderRegistry } from './base';
 import { SpotifyProvider } from './spotify';
 import { YouTubeProvider } from './youtube';
 import { AppleMusicProvider } from './apple-music';
+import { TidalProvider } from './tidal';
+import { DeezerProvider } from './deezer';
 
 // ==================== Provider Initialization ====================
 
@@ -47,6 +51,22 @@ export function initializeProviders() {
       ProviderRegistry.register(appleMusicProvider);
     } else {
       console.warn('[Providers] Apple Music not configured - skipping registration');
+    }
+
+    // Register Tidal (if configured)
+    if (process.env.TIDAL_CLIENT_ID) {
+      const tidalProvider = new TidalProvider();
+      ProviderRegistry.register(tidalProvider);
+    } else {
+      console.warn('[Providers] Tidal not configured - skipping registration');
+    }
+
+    // Register Deezer (if configured)
+    if (process.env.DEEZER_APP_ID) {
+      const deezerProvider = new DeezerProvider();
+      ProviderRegistry.register(deezerProvider);
+    } else {
+      console.warn('[Providers] Deezer not configured - skipping registration');
     }
 
     initialized = true;

@@ -10,7 +10,7 @@
 
 // ==================== Core Types ====================
 
-export type Platform = 'spotify' | 'youtube' | 'apple' | 'deezer' | 'tidal';
+export type Platform = 'spotify' | 'youtube' | 'apple' | 'tidal' | 'deezer';
 
 export interface Track {
   id: string;

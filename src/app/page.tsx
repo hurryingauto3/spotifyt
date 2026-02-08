@@ -26,10 +26,10 @@ export default function Home() {
           SpotifYT
         </h1>
         <p className="text-2xl text-purple-100 mb-6 font-medium">
-          Sync your music seamlessly between Spotify and YouTube
+          Sync your music across Spotify, YouTube, Tidal, and Deezer
         </p>
         <p className="text-lg text-purple-200/80 mb-12 max-w-2xl mx-auto leading-relaxed">
-          Transfer playlists, match tracks intelligently, and keep your music library in sync across platforms.
+          Transfer playlists, match tracks intelligently, and keep your music library in sync across 5+ streaming platforms.
           No duplicates, just your favorite music everywhere.
         </p>
 
